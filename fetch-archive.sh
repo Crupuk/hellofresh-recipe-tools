@@ -5,6 +5,9 @@
 APIAuthorisationHeader="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MDIyNDQ5MzYsImp0aSI6ImY2YTE1NTM5LWE5Y2UtNDNmMi1iMTllLWEzN2M3ZDkwZDU2YyIsImlhdCI6MTQ5OTYxNTE5MywiaXNzIjoic2VuZiJ9._syKk7fDOEDsvo-x6kbxvUq_WFEzGdw62ccg6RCLJjQ"
 UserAgentHeader="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
 RefererHeader="https://www.hellofresh.co.uk/?andrews-hello-fresh-scripts"
+LocalUrlParameter="locale=fr-BE&country=be"
+AcceptLanguageHeader="fr-BE,en;q=0.8,ca;q=0.6"
+OriginHeader="https://www.hellofresh.be"
 
 # Check we're running from a tmux session - you probably want to run this from one!
 if ! { [ "$TERM" = "screen" ] && [ -n "$TMUX" ]; } then
@@ -25,11 +28,11 @@ if [ ! -f all-recipes-search.json ]; then
 	# Fetch data about what recipes actually exist (currently 1429 total) by slightly abusing the HelloFresh recipe search API
 	echo -e "Fetching list of recipes from HelloFresh recipe search API using auth header: $APIAuthorisationHeader \n"
 	
-	curl "https://gw.hellofresh.com/api/recipes/search?offset=0&limit=10000&q=&locale=en-GB&country=gb" \
-	-H "Origin: https://www.hellofresh.co.uk" \
+	curl "https://gw.hellofresh.com/api/recipes/search?offset=0&limit=10000&q=&$LocalUrlParameter" \
+	-H "Origin: $OriginHeader" \
 	-H "Authorization: $APIAuthorisationHeader" \
 	-H "Accept-Encoding: gzip, deflate, br" \
-	-H "Accept-Language: en-GB,en;q=0.8,ca;q=0.6" \
+	-H "Accept-Language: $AcceptLanguageHeader" \
 	-H "Accept: application/json, text/plain, */*" \
 	-H "Pragma: no-cache" \
 	-H "Cache-Control: no-cache" \
@@ -55,11 +58,11 @@ cat all-recipes-search.json | jq '.items[].id' | sed 's/"//g' | while read recip
   if [ ! -f recipes/$recipeID ]; then
 	echo -e "Fetching recipe data from HelloFresh API for new recipe with ID: $recipeID \n"
 
-	curl "https://gw.hellofresh.com/api/recipes/$recipeID" \
-	-H "Origin: https://www.hellofresh.co.uk" \
+	curl "https://gw.hellofresh.com/api/recipes/$recipeID?$LocalUrlParameter" \
+	-H "Origin: $OriginHeader" \
 	-H "Authorization: $APIAuthorisationHeader" \
 	-H "Accept-Encoding: gzip, deflate, br" \
-	-H "Accept-Language: en-GB,en;q=0.8,ca;q=0.6" \
+	-H "Accept-Language: $AcceptLanguageHeader" \
 	-H "Accept: application/json, text/plain, */*" \
 	-H "Pragma: no-cache" \
 	-H "Cache-Control: no-cache" \
@@ -133,7 +136,7 @@ cat all-recipes-search.json | jq '.items[].id' | sed 's/"//g' | while read recip
 		."Utensils" = ( [.utensils[].name] | join(", ") ) |
 		."Tags" = ( [.tags[].name] | join(", ") ) |
 		."Cuisines" = ( [.cuisines[].name] | join(", ") ) |
-		."Prep Time Minutes" = (.prepTime | match("PT([0-9]*)M").captures[0].string) |
+		."Prep Time Minutes" = if(.prepTime != null) then (.prepTime | match("PT([0-9]*)M").captures[0].string) else "" end |
 		."Total Steps" = (.steps | length) |
 		."Description" = .description |
 		."Card PDF Link" = ("http://a.beveridge.uk/HelloFreshArchive/cards/" + .id + ".pdf") |
